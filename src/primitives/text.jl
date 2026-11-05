@@ -173,6 +173,8 @@ function draw_plot!(ctx, scene::Scene, plot::Text)
             colorname!(ctx, color) == "black" ? nothing : "text=" * colorname!(ctx, color),
             a < 0.999 ? "text opacity=" * fmt(a, 3) : nothing,
             abs(angle) > 1.0e-6 ? "rotate=" * fmt(angle * 180 / pi, 2) : nothing,
+            # data-space text stretches with the axis aspect, as in Makie
+            abs(scale[1] / scale[2] - 1) > 0.01 ? "xscale=" * fmt(scale[1] / scale[2], 3) : nothing,
             multiline ? "align=" * justification_name(per_block(justs, i), al) : nothing,
             isempty(fontcmd) ? nothing : "font=" * fontcmd,
         )

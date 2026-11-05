@@ -121,6 +121,20 @@ end
         @test !occursin("RGB}{0,128,0}", t)
     end
 
+    @testset "does not add colour nodes to the figure" begin
+        # A backend (e.g. CairoMakie) registers `computed_color` itself, from
+        # plot-type-specific inputs; if we registered it first, saving the
+        # same figure with CairoMakie afterwards would fail.
+        fig = fig_bars_band()
+        Makie.update_state_before_display!(fig)
+        plots = Makie.collect_atomic_plots(fig.scene)
+        before = [haskey(p.attributes, :computed_color) for p in plots]
+        tikz(fig)
+        @test before == [haskey(p.attributes, :computed_color) for p in plots]
+        mesh_plot = first(p for p in plots if p isa Mesh)
+        @test_nowarn Makie.compute_colors!(mesh_plot.attributes, :color)
+    end
+
     @testset "scene input" begin
         scene = Scene(size = (200, 200), camera = campixel!)
         lines!(scene, Point2f[(10, 10), (190, 190)]; color = :black)

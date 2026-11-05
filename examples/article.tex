@@ -1,0 +1,25 @@
+\documentclass[10pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{lipsum}
+
+\begin{document}
+\section*{TikzMakie example}
+
+The figure below was made with Makie and written with \texttt{savetikz}.
+All of its text --- tick labels, axis labels, the legend, the title --- is
+typeset by \LaTeX\ in the document's font, so it matches this paragraph:
+$\gamma = 0.1$, $x(t)$, $\dot{x}$.
+
+\begin{figure}[h]
+  \centering
+  \input{out/oscillator.tex}
+  \caption{A damped oscillator. The picture is exactly \texttt{\textbackslash textwidth} wide
+    because the Makie figure was created with \texttt{size = size\_pt(345, 200)}.}
+\end{figure}
+
+\lipsum[1]
+\end{document}

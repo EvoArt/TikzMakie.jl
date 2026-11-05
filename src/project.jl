@@ -11,17 +11,27 @@ unref(x::Base.RefValue) = x[]
     computed_color(plot)
 
 Resolved colours of an atomic plot (colormapping applied): a single colour or
-an array. Registers Makie's `computed_color` node if a backend has not yet.
+an array.
+
+This deliberately does *not* register Makie's `computed_color` node: backends
+register it themselves, from differently named inputs per plot type, and a
+node we added first would make a later `CairoMakie.save` of the same figure
+fail. Instead we evaluate the same mapping from the existing colormap nodes.
 """
 function computed_color(plot)
-    if !hasattr(plot, :computed_color)
-        if hasattr(plot, :scaled_color)
-            Makie.compute_colors!(plot.attributes)
-        else
-            return to_colorlike(getattr(plot, :color))
-        end
+    hasattr(plot, :scaled_color) || return to_colorlike(getattr(plot, :color))
+    color = getattr(plot, :scaled_color)
+    if color isa Union{Real, AbstractArray{<:Real}}
+        cmap = getattr(plot, :alpha_colormap)
+        crange = getattr(plot, :scaled_colorrange)
+        nan = getattr(plot, :nan_color, RGBAf(0, 0, 0, 0))
+        lo = getattr(plot, :lowclip_color, first(cmap))
+        hi = getattr(plot, :highclip_color, last(cmap))
+        mtype = getattr(plot, :color_mapping_type, Makie.continuous)
+        sample(v) = Makie.sample_color(cmap, v, crange, lo, hi, nan, mtype)
+        return color isa Real ? sample(color) : map(sample, color)
     end
-    return to_colorlike(getattr(plot, :computed_color))
+    return to_colorlike(color)
 end
 
 to_colorlike(c::Colorant) = RGBAf(c)
