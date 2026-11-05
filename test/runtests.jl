@@ -2,7 +2,7 @@ using Test
 using TikzMakie
 using TikzMakie: fmt, latex_escape, isnumberstring, number_to_math, tikz_anchor, clip_segment, split_polyline
 using CairoMakie   # loads the rasterisation extension; TikzMakie itself needs no backend
-using Makie, LaTeXStrings, Random
+using Makie, LaTeXStrings, Random, Dates
 using GeometryBasics: Point2d
 
 include(joinpath(@__DIR__, "figures.jl"))
@@ -100,6 +100,51 @@ end
         @test !occursin("\\fontsize", tikz(fig_lines(); fontsize = :inherit).code)
         t = tikz(fig_logaxis()).code
         @test occursin("10^{-2}", t)                                   # log ticks as math
+    end
+
+    @testset "node styles" begin
+        # images must not get the text strut (it would shift them up), and
+        # char markers keep their own font size when the common one is hoisted
+        t = tikz(fig_heatmap()).code
+        @test occursin("\\node[mkimg, anchor=south west]", t)
+        @test !occursin("\\node[mknode, anchor=south west] at", t[findfirst("includegraphics", t)[1] - 80:findfirst("includegraphics", t)[1]])
+        t = tikz(fig_scatter()).code
+        charlines = filter(l -> startswith(l, "\\node[mkimg") && endswith(l, "{A};"), split(t, '\n'))
+        @test length(charlines) == 5
+        @test all(l -> occursin("\\fontsize", l), charlines)
+        @test occursin("mknode/.style={inner sep=0pt, outer sep=0pt, execute at begin node={\\vphantom{(}}, font=", t)
+    end
+
+    @testset "displaystyle" begin
+        fig = Figure()
+        Axis(fig[1, 1]; xlabel = L"\frac{a}{b}", ylabel = L"cost $\sum_i x_i$ (\$)")
+        t = tikz(fig; displaystyle = true).code
+        @test occursin("{\$\\displaystyle \\frac{a}{b}\$}", t)
+        @test occursin("cost \$\\displaystyle \\sum_i x_i\$ (\\\$)", t)   # escaped \$ untouched
+        @test !occursin("displaystyle", tikz(fig).code)
+    end
+
+    @testset "other inputs" begin
+        # FigureAxisPlot, as returned by lines(...)
+        fap = lines(1:10, rand(10); axis = (; title = "fap"))
+        t = tikz(fap).code
+        check_wellformed(t)
+        @test occursin("{fap}", t)
+        # Dates on an axis (dim converts)
+
+        fig = Figure()
+        ax = Axis(fig[1, 1])
+        lines!(ax, DateTime(2024, 1, 1):Day(1):DateTime(2024, 3, 1), rand(61))
+        t = tikz(fig).code
+        check_wellformed(t)
+        @test occursin("2024", t)
+        # word-wrapped label
+        fig = Figure(size = (300, 300))
+        Label(fig[1, 1], "a long label that has to wrap across several lines"; word_wrap = true)
+        t = tikz(fig).code
+        check_wellformed(t)
+        @test occursin("wrap", t)
+        @test occursin("text width=", t)
     end
 
     @testset "options" begin

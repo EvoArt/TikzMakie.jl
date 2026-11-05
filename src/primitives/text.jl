@@ -62,7 +62,15 @@ LaTeX source for one Makie text block. `LaTeXString`s pass through
 unchanged; plain strings are escaped; rich text maps to `\\textsuperscript`
 etc.; numeric strings become math with `numbers_as_math`.
 """
-text_to_latex(ctx, s::LaTeXString) = String(s)
+function text_to_latex(ctx, s::LaTeXString)
+    str = String(s)
+    if ctx.opts.displaystyle
+        # \displaystyle at the start of every inline math span, so fractions,
+        # sums and integrals are set at full size, as MathTeXEngine draws them
+        str = replace(str, r"(?<!\\)\$(?!\$)((?:[^$\\]|\\.)*)(?<!\\)\$" => s"$\\displaystyle \1$")
+    end
+    return str
+end
 
 function text_to_latex(ctx, s::AbstractString)
     if ctx.opts.numbers_as_math && isnumberstring(s)
@@ -130,6 +138,7 @@ function draw_plot!(ctx, scene::Scene, plot::Text)
     colors = computed_color(plot)
     fonts = getattr(plot, :selected_font, nothing)
     justs = getattr(plot, :justification, Makie.automatic)
+    wraps = getattr(plot, :word_wrap_width, -1)
     r = clip_rect(ctx)
 
     for (i, str) in enumerate(texts)
@@ -166,7 +175,9 @@ function draw_plot!(ctx, scene::Scene, plot::Text)
             fontcmd = "\\fontsize{" * fmt(ptsz, 2) * "}{" * fmt(1.2 * ptsz, 2) * "}\\selectfont" * sw
         end
         a = coloralpha(color)
-        multiline = occursin('\n', String(s))
+        wrap = per_block(wraps, i)
+        wrapped = wrap isa Real && wrap > 0
+        multiline = wrapped || occursin('\n', String(s))
         opts = joinstyles(
             "mknode",
             "anchor=" * tikz_anchor(al),
@@ -176,6 +187,8 @@ function draw_plot!(ctx, scene::Scene, plot::Text)
             # data-space text stretches with the axis aspect, as in Makie
             abs(scale[1] / scale[2] - 1) > 0.01 ? "xscale=" * fmt(scale[1] / scale[2], 3) : nothing,
             multiline ? "align=" * justification_name(per_block(justs, i), al) : nothing,
+            # Makie wrapped this text at word_wrap_width; let LaTeX wrap it too
+            wrapped ? "text width=" * pt(ctx, wrap * scale[1]) : nothing,
             isempty(fontcmd) ? nothing : "font=" * fontcmd,
         )
         println(ctx.io, "\\node[", opts, "] at ", coord(ctx, o), " {", latex, "};")

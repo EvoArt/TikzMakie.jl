@@ -163,7 +163,7 @@ function draw_char_marker(ctx, ch::Char, o, size, angle, color)
     fs = isinvisible(color) ? nothing : "text=" * colorname!(ctx, color)
     a = coloralpha(color)
     opts = joinstyles(
-        "mknode", "anchor=center", fs, a < 0.999 ? "text opacity=" * fmt(a, 3) : nothing,
+        "mkimg", "anchor=center", fs, a < 0.999 ? "text opacity=" * fmt(a, 3) : nothing,
         abs(angle) > 1.0e-6 ? "rotate=" * fmt(angle * 180 / pi, 2) : nothing,
         "font=\\fontsize{" * fmt(size * ctx.opts.pt_per_unit, 2) * "}{" * fmt(1.2 * size * ctx.opts.pt_per_unit, 2) * "}\\selectfont"
     )

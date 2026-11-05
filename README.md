@@ -21,6 +21,12 @@ savetikz("sine.tex", fig)
 \end{figure}
 ```
 
+With the default `fontsize = :native`, text nodes request exact sizes such as
+`\fontsize{10.5}{12.6}`, so use a scalable font: `\usepackage{lmodern}`
+(with `\usepackage[T1]{fontenc}`), `fix-cm`, or any OpenType font under
+LuaLaTeX/XeLaTeX. Plain OT1 Computer Modern substitutes the nearest
+size and warns.
+
 Nothing about your plotting code changes. TikzMakie reads the finished
 figure, so the output has the same layout as CairoMakie's PDF.
 
@@ -81,6 +87,10 @@ See [examples/article.jl](examples/article.jl) and
 | `background` | `false` | Draw the figure background (`false` = transparent; axis backgrounds are always drawn). |
 | `standalone` | `false` | Wrap in a compilable `standalone` document. |
 | `image_prefix` | `""` | Prefix for `\includegraphics` paths, e.g. `"figures/"` if you `\input{figures/plot.tex}` from the parent directory (or use `\graphicspath`). |
+| `displaystyle` | `false` | Prefix math with `\displaystyle`, so `\frac`/`\int` are full size, as Makie draws them. |
+| `simplify` | `0.05` | Line simplification tolerance in Makie units (invisible; shrinks dense lines). `0` disables. |
+| `rasterize_scale` | `4` | Pixels per unit for plots with `rasterize = true` (needs `using CairoMakie`). |
+| `strut` | `true` | Give text nodes the font's full height/depth, matching Makie's alignment. |
 | `digits` | `2` | Decimals for coordinates. |
 | `color_prefix` | `"mkc"` | Prefix of the `\definecolor` names. |
 
@@ -98,16 +108,30 @@ histograms, contours, errorbars, boxplots, violins, pies, arrows, ….
 Geometry far outside the figure is clipped in Julia, because TikZ cannot handle
 huge coordinates.
 
+### Rasterising heavy plots
+
+Set Makie's own `rasterize` attribute on a plot to embed it as an image while
+everything else (axes, labels, other plots) stays vector and LaTeX:
+
+```julia
+using CairoMakie, TikzMakie          # CairoMakie does the rasterising
+scatter!(ax, huge_points; rasterize = true)   # rasterize_scale px per unit (default 4)
+surface!(ax3, xs, ys, zs; rasterize = 6)      # or an explicit px per unit
+```
+
+This is also the way to get lit 3D surfaces; vector meshes are flat-shaded.
+
 ## Limitations
 
 - Text width: LaTeX typesets the text after Makie has laid out the figure.
   With `latex_theme()` the widths agree closely; with very different fonts,
   long labels may not fit the space Makie reserved for them.
 - 3D surfaces and meshes are flat-shaded (no lighting), and intersecting
-  triangles are not split.
-- Very large data (100k-point lines, huge scatter plots) produce large `.tex`
-  files that are slow for LaTeX. Consider decimating, or use CairoMakie for
-  those figures.
+  triangles are not split. Use `rasterize` for those.
+- Huge scatter plots produce large `.tex` files that are slow for LaTeX;
+  rasterise them. (Lines are simplified automatically.)
+- Pattern fills (`Makie.LinePattern`) become grey; character markers lose
+  their outline.
 - Requires Makie 0.24.
 
 ## How it works

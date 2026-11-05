@@ -32,8 +32,9 @@ Printf = "1"
 julia = "1.10"
 
 [extras]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfa3c63-0f80-5e8b-9b8e-0f5b5d0e1b1a"
 
 [targets]
-test = ["CairoMakie", "Random", "Test"]
+test = ["CairoMakie", "Dates", "Random", "Test"]

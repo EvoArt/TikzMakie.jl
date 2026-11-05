@@ -39,6 +39,9 @@ Options controlling TikZ output. Every field can be passed as a keyword to
   parenthesis, as Makie aligns text by font ascender/descender rather than
   by the glyphs' ink. Keeps e.g. an `x` axis label at the same distance from
   the tick labels as in Makie.
+- `displaystyle = false`: prefix math in `LaTeXString`s with `\\displaystyle`,
+  so `\\frac`, `\\sum` and `\\int` are full size, as Makie draws them (and as
+  Makie's layout reserved space for them).
 """
 Base.@kwdef struct TikzOptions
     pt_per_unit::Float64 = 0.75
@@ -57,6 +60,7 @@ Base.@kwdef struct TikzOptions
     simplify::Float64 = 0.05
     rasterize_scale::Float64 = 4.0
     strut::Bool = true
+    displaystyle::Bool = false
 end
 
 mutable struct TikzContext

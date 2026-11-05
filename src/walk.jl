@@ -48,7 +48,7 @@ function draw_rasterized!(ctx, scene::Scene, plot::Plot)
     o, w = Makie.origin(r), Makie.widths(r)
     ref = add_image!(ctx, img)
     println(
-        ctx.io, "\\node[mknode, anchor=south west] at ", coord(ctx, o),
+        ctx.io, "\\node[mkimg, anchor=south west] at ", coord(ctx, o),
         " {\\includegraphics[width=", pt(ctx, w[1]), ", height=", pt(ctx, w[2]), "]{", ref, "}};"
     )
     return
@@ -186,13 +186,18 @@ Move the most common node font (exact size, no weight switches) into the
 `mknode` style so that most nodes don't repeat it.
 """
 function hoist_node_font(body::String)
+    lines = split(body, '\n')
+    istext(l) = startswith(l, "\\node[mknode")
     counts = Dict{String, Int}()
-    for m in eachmatch(NODE_FONT_RE, body)
-        counts[m.captures[1]] = get(counts, m.captures[1], 0) + 1
+    for l in lines
+        istext(l) || continue
+        m = match(NODE_FONT_RE, l)
+        m === nothing || (counts[m.captures[1]] = get(counts, m.captures[1], 0) + 1)
     end
     isempty(counts) && return body, nothing
     font = first(sort!(collect(counts); by = x -> (-x[2], x[1])))[1]
-    return replace(body, ", font=" * font * "]" => "]"), font
+    pat = ", font=" * font * "]"
+    return join((istext(l) ? replace(l, pat => "]"; count = 1) : l for l in lines), '\n'), font
 end
 
 function assemble(ctx)
@@ -214,7 +219,11 @@ function assemble(ctx)
     # phantom parenthesis gives every node at least that height and depth
     o.strut && (nodestyle *= ", execute at begin node={\\vphantom{(}}")
     nodefont === nothing || (nodestyle *= ", font=" * nodefont)
-    println(io, "\\begin{tikzpicture}[x=", u, "pt, y=", u, "pt, mknode/.style={", nodestyle, "}]")
+    # mknode: text; mkimg: images and character markers (no strut, no font)
+    println(
+        io, "\\begin{tikzpicture}[x=", u, "pt, y=", u, "pt, mknode/.style={", nodestyle,
+        "}, mkimg/.style={inner sep=0pt, outer sep=0pt}]"
+    )
     foreach(d -> println(io, d), ctx.color_defs)
     println(io, "\\path[use as bounding box] (0,0) rectangle ", coord(ctx, ctx.size), ";")
     print(io, body)

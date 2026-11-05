@@ -46,7 +46,7 @@ function write_image_node(ctx, colors::AbstractMatrix, p0, p1; interpolate::Bool
     w, h = p1[1] - p0[1], p1[2] - p0[2]
     (w > 0 && h > 0) || return
     opts = "width=" * pt(ctx, w) * ", height=" * pt(ctx, h) * (interpolate ? ", interpolate=true" : "")
-    println(ctx.io, "\\node[mknode, anchor=south west] at ", coord(ctx, p0), " {\\includegraphics[", opts, "]{", ref, "}};")
+    println(ctx.io, "\\node[mkimg, anchor=south west] at ", coord(ctx, p0), " {\\includegraphics[", opts, "]{", ref, "}};")
     return
 end
 
