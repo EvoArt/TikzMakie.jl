@@ -35,6 +35,10 @@ Options controlling TikZ output. Every field can be passed as a keyword to
   `rasterize = true` (≈ 380 dpi at the default `pt_per_unit`). An integer
   `rasterize = n ≥ 2` on the plot uses `n` instead (Makie stores `true` as 1).
   Needs CairoMakie loaded.
+- `strut = true`: give every text node at least the height and depth of a
+  parenthesis, as Makie aligns text by font ascender/descender rather than
+  by the glyphs' ink. Keeps e.g. an `x` axis label at the same distance from
+  the tick labels as in Makie.
 """
 Base.@kwdef struct TikzOptions
     pt_per_unit::Float64 = 0.75
@@ -52,6 +56,7 @@ Base.@kwdef struct TikzOptions
     clip_padding::Float64 = 0.25
     simplify::Float64 = 0.05
     rasterize_scale::Float64 = 4.0
+    strut::Bool = true
 end
 
 mutable struct TikzContext
