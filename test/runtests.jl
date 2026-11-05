@@ -3,6 +3,7 @@ using TikzMakie
 using TikzMakie: fmt, latex_escape, isnumberstring, number_to_math, tikz_anchor, clip_segment, split_polyline
 using CairoMakie   # loads the rasterisation extension; TikzMakie itself needs no backend
 using Makie, LaTeXStrings, Random, Dates
+using PrettyTables   # loads the latextable extension
 using GeometryBasics: Point2d
 
 include(joinpath(@__DIR__, "figures.jl"))
@@ -157,6 +158,60 @@ end
         @test occursin("col1", tikz(fig; color_prefix = "col").code)
     end
 
+    @testset "raw LaTeX" begin
+        tab = raw"\begin{tabular}{rr}a & b \\ 1 & 2 \\\end{tabular}"
+        s = RawLaTeX(tab; preview = "a b\n1 2")
+        @test s isa AbstractString
+        @test String(s) == "a b\n1 2"
+        @test length(s) == 7
+        @test occursin("preview", repr(s))
+        fig = Figure(size = (400, 300))
+        ax = Axis(fig[1, 1])
+        text!(ax, 0.5, 0.5; text = s, space = :relative, align = (:right, :top))
+        Label(fig[1, 2], s; tellheight = false)
+        Label(fig[2, 1], RawLaTeX("\\LaTeX"; preview = ""))   # nothing for Makie to draw
+        t = tikz(fig).code
+        check_wellformed(t)
+        @test count(tab, t) == 2                                       # verbatim, not escaped
+        @test !occursin("a b", t)                                      # preview not written
+        @test occursin("{\\LaTeX}", t)                                 # empty preview still emitted
+        node = only(filter(l -> occursin("anchor=north east", l), split(t, '\n')))
+        @test !occursin("align=", node)                                # source newlines aren't line breaks
+        @test occursin("RAW", tikz(fig; textfilter = s -> replace(s, "tabular" => "RAW")).code)
+        # other backends draw the preview
+        img = Makie.colorbuffer(fig)
+        @test size(img, 1) > 0
+        # preamble for standalone output
+        t = tikz(fig; standalone = true, preamble = "\\usepackage{booktabs}\n").code
+        @test occursin("\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\begin{document}", t)
+        @test !occursin("booktabs", tikz(fig; preamble = "\\usepackage{booktabs}").code)
+    end
+
+    @testset "latextable (PrettyTables extension)" begin
+        data = [1 0.12 "a"; 2 3.4 "b"]
+        tbl = latextable(data; column_labels = [LatexCell(L"n"), LatexCell(L"\alpha"), "label"])
+        @test tbl isa RawLaTeX
+        @test occursin("\\begin{tabular}", tbl.latex)
+        @test occursin("\\toprule", tbl.latex)
+        @test occursin("\$n\$", tbl.latex) && occursin("\$\\alpha\$", tbl.latex)
+        @test !occursin("LatexCell", tbl.preview)
+        @test occursin("alpha", tbl.preview) && occursin("3.4", tbl.preview)
+        @test !occursin('$', tbl.preview)
+        @test count('\n', tbl.preview) >= 3
+        @test !occursin("toprule", latextable(data; booktabs = false).latex)
+        @test startswith(latextable(data; background = "white").latex, "\\colorbox{white}{\\begin{tabular}")
+        # backend-specific keywords go to one backend only
+        ali = latextable(data; latex = (; table_format = PrettyTables.LatexTableFormat()))
+        @test !occursin("toprule", ali.latex)
+        fig = Figure()
+        ax = Axis(fig[1, 1])
+        text!(ax, 0.98, 0.97; text = tbl, space = :relative, align = (:right, :top))
+        Label(fig[1, 2], tbl; tellheight = false)
+        t = tikz(fig).code
+        check_wellformed(t)
+        @test count("\\toprule", t) == 2
+    end
+
     @testset "visibility" begin
         fig = Figure()
         ax = Axis(fig[1, 1])
@@ -268,6 +323,17 @@ end
             savetikz(joinpath(dir, "$name.tex"), make(); standalone = true)
             ok = success(Cmd(`$pdflatex -interaction=nonstopmode -halt-on-error $name.tex`; dir))
             @test ok
+        end
+        @testset "compiles with pdflatex: latextable" begin
+            dir = mktempdir()
+            fig = Figure(size = (500, 250))
+            ax = Axis(fig[1, 1])
+            lines!(ax, 0 .. 10, sin)
+            tbl = latextable([1 0.12; 2 3.4]; column_labels = [LatexCell(L"n"), "x"], background = "white")
+            text!(ax, 0.98, 0.97; text = tbl, space = :relative, align = (:right, :top))
+            Label(fig[1, 2], tbl; tellheight = false)
+            savetikz(joinpath(dir, "table.tex"), fig; standalone = true, preamble = "\\usepackage{booktabs}")
+            @test success(Cmd(`$pdflatex -interaction=nonstopmode -halt-on-error table.tex`; dir))
         end
     else
         @info "pdflatex not found (or TIKZMAKIE_SKIP_LATEX set); skipping compile tests"

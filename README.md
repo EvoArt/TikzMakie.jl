@@ -70,6 +70,8 @@ See [examples/article.jl](examples/article.jl) and
 | `savetikz(path, t::TikzFigure)` | Write a previously generated `TikzFigure`. |
 | `latex_theme(; fontsize, pt_per_unit, latexfonts)` | Makie theme for figures destined for LaTeX. |
 | `size_pt(w, h)` | Figure size in Makie units for `w`×`h` points. |
+| `RawLaTeX(latex; preview)` | Text written verbatim as LaTeX; Makie draws and sizes `preview`. |
+| `latextable(data; ...)` | A PrettyTables table as `RawLaTeX` (needs `using PrettyTables`). |
 
 `fig` can be a `Figure`, the return value of e.g. `lines(...)`, or a `Scene`.
 
@@ -84,6 +86,7 @@ See [examples/article.jl](examples/article.jl) and
 | `textfilter` | `identity` | Function applied to each node's LaTeX string. |
 | `background` | `false` | Draw the figure background (`false` = transparent; axis backgrounds are always drawn). |
 | `standalone` | `false` | Wrap in a compilable `standalone` document. |
+| `preamble` | `""` | Extra preamble lines for `standalone`, e.g. `"\\usepackage{booktabs}"`. |
 | `image_prefix` | `""` | Prefix for `\includegraphics` paths, e.g. `"figures/"` if you `\input{figures/plot.tex}` from the parent directory (or use `\graphicspath`). |
 | `displaystyle` | `false` | Prefix math with `\displaystyle`, so `\frac`/`\int` are full size, as Makie draws them. |
 | `simplify` | `0.05` | Line simplification tolerance in Makie units (invisible; shrinks dense lines). `0` disables. |
@@ -118,6 +121,22 @@ surface!(ax3, xs, ys, zs; rasterize = 6)      # or an explicit px per unit
 ```
 
 This is also the way to get lit 3D surfaces; vector meshes are flat-shaded.
+
+### Tables and raw LaTeX
+
+`RawLaTeX(latex; preview)` is text that goes into the picture verbatim, while
+Makie (layout, CairoMakie, …) sees only `preview`. It works anywhere Makie
+takes text (`text!`, `Label`, titles). `latextable` builds one from any table
+with PrettyTables.jl: the LaTeX backend's output for TikZ, the text backend's
+as the preview, so Makie reserves roughly the right space:
+
+```julia
+using CairoMakie, TikzMakie, PrettyTables
+tbl = latextable([1 0.12; 2 3.4]; column_labels = [LatexCell(L"n"), LatexCell(L"x")])
+text!(ax, 0.98, 0.97; text = tbl, space = :relative, align = (:right, :top))  # inset
+Label(fig[1, 2], tbl; tellheight = false)                                     # own cell
+savetikz("fig.tex", fig)   # booktabs rules: needs \usepackage{booktabs}
+```
 
 ## Limitations
 

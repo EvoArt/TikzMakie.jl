@@ -17,6 +17,8 @@ Options controlling TikZ output. Every field can be passed as a keyword to
 - `background = false`: draw the figure's background colour. `false` leaves the
   picture transparent (axis backgrounds are still drawn).
 - `standalone = false`: wrap the picture in a compilable `standalone` document.
+- `preamble = ""`: extra preamble lines for the `standalone` document, e.g.
+  `"\\\\usepackage{booktabs}"` for a [`latextable`](@ref).
 - `image_prefix = ""`: prepended to image file names in `\\includegraphics`,
   e.g. `"figures/"` when the `.tex` is `\\input` from a parent directory.
 - `image_basename = "tikzmakie"`: stem of image file names (set automatically
@@ -52,6 +54,7 @@ Base.@kwdef struct TikzOptions
     textfilter::Any = identity
     background::Bool = false
     standalone::Bool = false
+    preamble::String = ""
     image_prefix::String = ""
     image_basename::String = "tikzmakie"
     max_upsample::Int = 2048

@@ -60,6 +60,41 @@ scatter!(ax, huge_points; rasterize = true)   # rasterize_scale px per unit (def
 surface!(ax3, xs, ys, zs; rasterize = 6)      # or an explicit px per unit
 ```
 
+## Tables and other raw LaTeX
+
+Makie cannot draw a `tabular` (its LaTeX renderer only does math), but
+TikzMakie can pass one through. [`RawLaTeX`](@ref) is text that goes into the
+picture verbatim, while Makie's layout and other backends see a plain-text
+`preview`. It works anywhere Makie takes text: `text!`, `Label`, titles.
+
+[`latextable`](@ref) builds one from any table with PrettyTables.jl. The LaTeX
+comes from PrettyTables' LaTeX backend (booktabs rules by default) and the
+preview from its text backend, so Makie reserves roughly the space the table
+will take:
+
+```julia
+using CairoMakie, TikzMakie, PrettyTables
+
+data = [1 0.12 "a"; 2 3.4 "b"; 3 56.7 "c"]
+labels = [LatexCell(L"n"), LatexCell(L"x"), "label"]
+
+fig = Figure(size = size_pt(345, 150))
+ax = Axis(fig[1, 1]; xlabel = L"t", ylabel = L"\sin t")
+lines!(ax, 0 .. 10, sin)
+# an inset, on a white background so the data doesn't show through
+text!(ax, 0.98, 0.97; text = latextable(data; column_labels = labels, background = "white"),
+      space = :relative, align = (:right, :top))
+# a table in its own layout cell
+Label(fig[1, 2], latextable(data; column_labels = labels); tellheight = false)
+
+savetikz("table.tex", fig; standalone = true, preamble = "\\usepackage{booktabs}")
+```
+
+The table is set at the text's font size. In your own document, add
+`\usepackage{booktabs}` to the preamble (or pass `booktabs = false`).
+Keywords meant for one PrettyTables backend only go in `latex = (; ...)` or
+`text = (; ...)`.
+
 ## Options
 
 All keywords of [`tikz`](@ref)/[`savetikz`](@ref) are listed in
@@ -75,6 +110,7 @@ All keywords of [`tikz`](@ref)/[`savetikz`](@ref) are listed in
 | `textfilter` | `identity` | Function applied to each node's LaTeX string. |
 | `background` | `false` | Draw the figure background (`false` = transparent). |
 | `standalone` | `false` | Wrap in a compilable `standalone` document. |
+| `preamble` | `""` | Extra preamble lines for `standalone`, e.g. `"\\usepackage{booktabs}"`. |
 | `image_prefix` | `""` | Prefix for `\includegraphics` paths. |
 | `simplify` | `0.05` | Line simplification tolerance in Makie units. `0` disables. |
 | `rasterize_scale` | `4` | Pixels per unit for plots with `rasterize = true`. |
