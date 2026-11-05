@@ -12,7 +12,7 @@ savetikz("sine.tex", fig)      # then \\input{sine.tex} in LaTeX
 ```
 
 See [`tikz`](@ref), [`savetikz`](@ref), [`TikzOptions`](@ref),
-[`latex_theme`](@ref), [`size_pt`](@ref).
+[`latex_theme`](@ref), [`size_pt`](@ref), [`RawLaTeX`](@ref), [`latextable`](@ref).
 """
 module TikzMakie
 
@@ -28,8 +28,9 @@ using Printf: Printf
 using LaTeXStrings: LaTeXString
 using PNGFiles: PNGFiles
 
-export tikz, savetikz, TikzFigure, TikzOptions, latex_theme, size_pt
+export tikz, savetikz, TikzFigure, TikzOptions, latex_theme, size_pt, RawLaTeX, latextable
 
+include("rawlatex.jl")
 include("format.jl")
 include("context.jl")
 include("project.jl")

@@ -86,6 +86,8 @@ function text_to_latex(ctx, r::Makie.RichText)
     return rich_to_latex(ctx, r)
 end
 
+text_to_latex(ctx, s::RawLaTeX) = s.latex
+
 text_to_latex(ctx, x) = latex_escape(string(x); unicode = ctx.opts.unicode)
 
 "Weight/shape switches for a resolved font (`NativeFont`)."
@@ -143,7 +145,8 @@ function draw_plot!(ctx, scene::Scene, plot::Text)
 
     for (i, str) in enumerate(texts)
         s = str isa AbstractString || str isa Makie.RichText ? str : string(str)
-        String(s) == "" && continue
+        raw = s isa RawLaTeX
+        (raw ? isempty(s.latex) : String(s) == "") && continue
         p = positions[i]
         isfinitepoint(p) || continue
         o = P(p)
@@ -177,7 +180,8 @@ function draw_plot!(ctx, scene::Scene, plot::Text)
         a = coloralpha(color)
         wrap = per_block(wraps, i)
         wrapped = wrap isa Real && wrap > 0
-        multiline = wrapped || occursin('\n', String(s))
+        # newlines in raw LaTeX source (or its preview) are not line breaks
+        multiline = wrapped || (!raw && occursin('\n', String(s)))
         opts = joinstyles(
             "mknode",
             "anchor=" * tikz_anchor(al),
