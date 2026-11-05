@@ -1,0 +1,7 @@
+Manifest*.toml
+/gallery/
+*.aux
+*.log
+*.pdf
+*.synctex.gz
+/test/out/
