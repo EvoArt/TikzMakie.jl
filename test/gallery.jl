@@ -5,12 +5,13 @@
 
 using CairoMakie, TikzMakie, Random
 include(joinpath(@__DIR__, "figures.jl"))
+include(joinpath(@__DIR__, "stress.jl"))
 
 outdir = length(ARGS) >= 1 ? ARGS[1] : joinpath(@__DIR__, "out")
 only = length(ARGS) >= 2 ? Set(ARGS[2:end]) : nothing
 mkpath(outdir)
 
-for (name, make) in FIGURES
+for (name, make) in vcat(FIGURES, STRESS)
     only !== nothing && !(name in only) && continue
     Random.seed!(1)
     fig = make()

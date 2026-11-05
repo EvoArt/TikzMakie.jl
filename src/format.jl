@@ -3,12 +3,12 @@
 const _FMT_CACHE = Dict{Int, Printf.Format}()
 
 """
-    fmt(x, digits = 3)
+    fmt(x, digits = 2)
 
 Format a number for TikZ: fixed point with `digits` decimals, trailing zeros
 trimmed, never scientific notation, `-0` normalised to `0`.
 """
-function fmt(x::Real, digits::Int = 3)
+function fmt(x::Real, digits::Int = 2)
     isfinite(x) || throw(ArgumentError("TikzMakie: refusing to write non-finite number $x"))
     f = get!(() -> Printf.Format("%.$(digits)f"), _FMT_CACHE, digits)
     s = Printf.format(f, Float64(x))

@@ -68,6 +68,7 @@ function draw_plot!(ctx, scene::Scene, plot::Poly)
     end
     sws = getattr(plot, :strokewidth, 0.0)
     f, P = recipe_mapper(scene, plot)
+    r = clip_rect(ctx)
     cap = linecap_name(getattr(plot, :linecap, :butt))
     join_ = joinstyle_name(getattr(plot, :joinstyle, :miter))
     linestyle = getattr(plot, :linestyle, nothing)
@@ -80,15 +81,18 @@ function draw_plot!(ctx, scene::Scene, plot::Poly)
         ds = draw_style(ctx, sc, sw)
         (fs === nothing && ds === nothing) && continue
         if shape isa BezierPath
-            path = bezier_to_tikz(ctx, shape, p -> P(f(p)); close = true)
+            # control points are clamped: exact inside the padded area, which
+            # extends well beyond anything visible
+            path = bezier_to_tikz(ctx, shape, p -> clamp_point(P(f(p)), r); close = true)
         else
             rings = poly_rings(shape)
             rings === nothing && continue
             parts = String[]
             for ring in rings
                 pts = [P(f(p)) for p in ring if isfinitepoint(p)]
-                length(pts) >= 2 || continue
                 all(isfinitepoint, pts) || continue
+                pts = clip_polygon(pts, r)
+                length(pts) >= 2 || continue
                 push!(parts, " " * join((coord(ctx, q) for q in pts), " -- ") * " -- cycle")
             end
             isempty(parts) && continue
@@ -136,8 +140,8 @@ function draw_plot!(ctx, scene::Scene, band::Band)
         start !== nothing && n - start >= 1 && push!(segments, start:n)
         for rng in segments
             ring = vcat([P(f(p)) for p in lo[rng]], [P(f(p)) for p in reverse(up[rng])])
-            # clip by projecting outliers onto the padded rectangle (fills only)
-            ring = [Point2d(clamp(q[1], r[1], r[3]), clamp(q[2], r[2], r[4])) for q in ring]
+            ring = clip_polygon(ring, r)
+            length(ring) >= 3 || continue
             println(ctx.io, "\\path[", fs, "] ", join((coord(ctx, q) for q in ring), " -- "), " -- cycle;")
         end
     end

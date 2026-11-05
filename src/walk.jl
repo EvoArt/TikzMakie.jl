@@ -86,12 +86,16 @@ fallback recurses into child plots, or warns once if there are none.
 """
 function draw_plot!(ctx, scene::Scene, plot::Plot)
     if isempty(plot.plots)
-        warn_once(ctx, typeof(plot).name.name, "TikzMakie: plot type $(typeof(plot).name.name) is not supported yet and was skipped.")
+        name = Makie.plotsym(typeof(plot))
+        warn_once(ctx, name, "TikzMakie: plot type $name is not supported yet and was skipped.")
     else
         draw_children!(ctx, scene, plot)
     end
     return
 end
+
+# PlotLists are containers that are empty when they hold nothing to draw
+draw_plot!(ctx, scene::Scene, ::Makie.PlotList) = nothing
 
 function draw_children!(ctx, scene, plot)
     for child in sort(plot.plots; by = Makie.zvalue2d, alg = Base.Sort.DEFAULT_STABLE)

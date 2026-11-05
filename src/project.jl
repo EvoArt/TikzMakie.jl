@@ -176,3 +176,39 @@ function recipe_mapper(scene::Scene, plot::Plot)
     end
     return f, Projector(scene, space, Mat4d(I))
 end
+
+"""
+    clip_polygon(points, r) -> Vector{Point2d}
+
+Sutherland–Hodgman clipping of a closed polygon (projected points) to the
+rectangle `r`. Used for fills, so geometry far outside the figure never
+reaches TikZ.
+"""
+function clip_polygon(points::AbstractVector, r)
+    all(p -> inrect(p, r), points) && return collect(Point2d, points)
+    out = collect(Point2d, points)
+    # (axis, bound, keep-if-greater)
+    for (ax, bound, greater) in ((1, r[1], true), (1, r[3], false), (2, r[2], true), (2, r[4], false))
+        isempty(out) && break
+        input = out
+        out = Point2d[]
+        inside(p) = greater ? p[ax] >= bound : p[ax] <= bound
+        function cross(a, b)
+            t = (bound - a[ax]) / (b[ax] - a[ax])
+            return Point2d(a[1] + t * (b[1] - a[1]), a[2] + t * (b[2] - a[2]))
+        end
+        prev = input[end]
+        for cur in input
+            if inside(cur)
+                inside(prev) || push!(out, cross(prev, cur))
+                push!(out, cur)
+            elseif inside(prev)
+                push!(out, cross(prev, cur))
+            end
+            prev = cur
+        end
+    end
+    return out
+end
+
+clamp_point(p, r) = Point2d(clamp(p[1], r[1], r[3]), clamp(p[2], r[2], r[4]))
