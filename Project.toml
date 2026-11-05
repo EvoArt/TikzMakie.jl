@@ -13,7 +13,14 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 PNGFiles = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[weakdeps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+
+[extensions]
+TikzMakieCairoMakieExt = "CairoMakie"
+
 [compat]
+CairoMakie = "0.15"
 Colors = "0.12, 0.13"
 FixedPointNumbers = "0.8"
 GeometryBasics = "0.5"
@@ -25,7 +32,8 @@ Printf = "1"
 julia = "1.10"
 
 [extras]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfa3c63-0f80-5e8b-9b8e-0f5b5d0e1b1a"
 
 [targets]
-test = ["Test"]
+test = ["CairoMakie", "Random", "Test"]

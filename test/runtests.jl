@@ -1,6 +1,7 @@
 using Test
 using TikzMakie
 using TikzMakie: fmt, latex_escape, isnumberstring, number_to_math, tikz_anchor, clip_segment, split_polyline
+using CairoMakie   # loads the rasterisation extension; TikzMakie itself needs no backend
 using Makie, LaTeXStrings, Random
 using GeometryBasics: Point2d
 
@@ -161,6 +162,47 @@ end
         @test size_pt(345, 200) == (460.0, 200 / 0.75)
         th = latex_theme(fontsize = 9)
         @test th.fontsize[] ≈ 12
+    end
+
+    @testset "line simplification" begin
+        straight = [Point2d(i, 2i) for i in 0:100]
+        @test length(TikzMakie.simplify_polyline(straight, 0.01)) == 2
+        @test length(TikzMakie.simplify_polyline(straight, 0)) == 101
+        zig = [Point2d(i, isodd(i) ? 1 : 0) for i in 0:10]
+        @test length(TikzMakie.simplify_polyline(zig, 0.5)) == 11
+        fig = Figure()
+        xs = range(0, 10, length = 20_000)
+        lines(fig[1, 1], xs, sin.(xs))
+        n_simplified = count("--", tikz(fig).code)
+        n_full = count("--", tikz(fig; simplify = 0).code)
+        @test n_simplified < n_full / 10
+    end
+
+    @testset "per-vertex colours merge into runs" begin
+        fig = Figure()
+        xs = range(0, 1, length = 2000)
+        lines(fig[1, 1], xs, xs; color = fill(0.5, 2000), colorrange = (0, 1))
+        # constant colour values: one \draw for the data line, not 1999
+        @test count("line cap=round", tikz(fig).code) == 1
+    end
+
+    @testset "rasterize (CairoMakie extension)" begin
+        fig = Figure(size = (400, 300))
+        ax = Axis(fig[1, 1])
+        scatter!(ax, rand(500), rand(500); rasterize = true)
+        lines!(ax, 0:1, 0:1; color = :red)
+        t = tikz(fig)
+        @test length(t.images) == 1
+        @test occursin("\\includegraphics", t.code)
+        @test !occursin("circle[", t.code)                # the scatter is not drawn as vectors
+        @test occursin("RGB}{255,0,0}", t.code)           # the line still is
+        name, img = t.images[1]
+        scene_w = Makie.widths(Makie.viewport(ax.scene)[])[1]
+        @test size(img, 2) == round(Int, 4 * scene_w)     # rasterize_scale = 4
+        @test any(c -> Makie.alpha(c) > 0, img)
+        @test any(c -> Makie.alpha(c) == 0, img)                # transparent background
+        t2 = tikz(fig; rasterize_scale = 2)
+        @test size(t2.images[1][2], 2) == round(Int, 2 * scene_w)
     end
 
     @testset "more plot types" begin

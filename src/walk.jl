@@ -17,10 +17,42 @@ children. `Poly` and `Band` become clean vector paths (not triangle meshes);
 `Text` becomes LaTeX nodes (its child linesegments are MathTeXEngine's
 fraction bars, which LaTeX draws itself).
 """
-is_tikz_atomic(p::Plot) = isempty(p.plots)
+is_tikz_atomic(p::Plot) = isempty(p.plots) || rasterize_level(p) != 0
 is_tikz_atomic(::Text) = true
 is_tikz_atomic(::Poly) = true
 is_tikz_atomic(::Band) = true
+
+"""
+Makie's `rasterize` attribute as a number (0 = vector output). Makie stores
+`rasterize = true` as `1`; both mean "use `rasterize_scale`".
+"""
+rasterize_level(p::Plot) = Int(to_value(get(p, :rasterize, false)))
+
+"""
+    rasterize_plot(scene, plot, scale) -> Union{Nothing, Matrix{RGBA{N0f8}}}
+
+Render `plot` into an image covering `scene`'s viewport at `scale` pixels per
+unit. Implemented by the CairoMakie extension; returns `nothing` without it.
+"""
+rasterize_plot(scene, plot, scale) = nothing
+
+function draw_rasterized!(ctx, scene::Scene, plot::Plot)
+    level = rasterize_level(plot)
+    scale = level == 1 ? ctx.opts.rasterize_scale : Float64(level)
+    img = rasterize_plot(scene, plot, scale)
+    if img === nothing
+        warn_once(ctx, :rasterize, "TikzMakie: plots with `rasterize` set need CairoMakie loaded (`using CairoMakie`); drawing them as vectors instead.")
+        return draw_plot!(ctx, scene, plot)
+    end
+    r = viewport_rect(scene)
+    o, w = Makie.origin(r), Makie.widths(r)
+    ref = add_image!(ctx, img)
+    println(
+        ctx.io, "\\node[mknode, anchor=south west] at ", coord(ctx, o),
+        " {\\includegraphics[width=", pt(ctx, w[1]), ", height=", pt(ctx, w[2]), "]{", ref, "}};"
+    )
+    return
+end
 
 function collect_plots!(out, p::Plot)
     if is_tikz_atomic(p)
@@ -136,7 +168,11 @@ function tikz(fig; kwargs...)
             needs_clip(ctx, pscene) && open_clip!(ctx, pscene)
             current = pscene
         end
-        draw_plot!(ctx, pscene, p)
+        if rasterize_level(p) != 0
+            draw_rasterized!(ctx, pscene, p)
+        else
+            draw_plot!(ctx, pscene, p)
+        end
     end
     current !== nothing && needs_clip(ctx, current) && close_clip!(ctx)
 

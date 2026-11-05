@@ -28,6 +28,13 @@ Options controlling TikZ output. Every field can be passed as a keyword to
 - `clip_padding = 0.25`: geometry further than this fraction of the figure
   size outside the figure is cut in Julia (TikZ cannot handle huge
   coordinates).
+- `simplify = 0.05`: lines are simplified (Ramer–Douglas–Peucker) with this
+  tolerance in Makie units (0.05 units ≈ 0.04pt, far below visibility).
+  Dense lines shrink a lot. `0` disables.
+- `rasterize_scale = 4`: pixels per Makie unit for plots with
+  `rasterize = true` (≈ 380 dpi at the default `pt_per_unit`). An integer
+  `rasterize = n ≥ 2` on the plot uses `n` instead (Makie stores `true` as 1).
+  Needs CairoMakie loaded.
 """
 Base.@kwdef struct TikzOptions
     pt_per_unit::Float64 = 0.75
@@ -43,6 +50,8 @@ Base.@kwdef struct TikzOptions
     max_upsample::Int = 2048
     color_prefix::String = "mkc"
     clip_padding::Float64 = 0.25
+    simplify::Float64 = 0.05
+    rasterize_scale::Float64 = 4.0
 end
 
 mutable struct TikzContext

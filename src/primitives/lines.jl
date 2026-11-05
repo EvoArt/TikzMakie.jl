@@ -68,23 +68,36 @@ function draw_plot!(ctx, scene::Scene, plot::Lines)
     r = clip_rect(ctx)
 
     if color isa AbstractArray || lw isa AbstractArray
-        # per-vertex colour or width: one segment at a time, averaging endpoints
+        # per-vertex colour or width: style per segment (averaging endpoints);
+        # consecutive segments whose style rounds to the same TikZ string are
+        # merged into one polyline, so smooth gradients stay compact
+        cur_style, run = nothing, Point2d[]
+        flush!() = (cur_style !== nothing && length(run) >= 2 && write_runs(ctx, cur_style, [run]); run = Point2d[])
         for i in 1:(length(px) - 1)
             a, b = px[i], px[i + 1]
-            (isfinitepoint(a) && isfinitepoint(b)) || continue
+            (isfinitepoint(a) && isfinitepoint(b)) || (flush!(); continue)
             ok, a2, b2 = clip_segment(a, b, r)
-            ok || continue
+            ok || (flush!(); continue)
             c = color isa AbstractArray ? mixcolor(color[i], color[i + 1]) : color
             w = lw isa AbstractArray ? (lw[i] + lw[i + 1]) / 2 : lw
             ds = draw_style(ctx, c, w)
-            ds === nothing && continue
-            # round caps hide the joints between separately stroked segments
-            write_runs(ctx, joinstyles(ds, "line cap=round", common...), [[a2, b2]])
+            ds === nothing && (flush!(); continue)
+            # round caps hide the joints between separately stroked runs
+            style = joinstyles(ds, "line cap=round", common...)
+            if style == cur_style && !isempty(run) && run[end] == a2
+                push!(run, b2)
+            else
+                flush!()
+                cur_style = style
+                run = [a2, b2]
+            end
         end
+        flush!()
     else
         ds = draw_style(ctx, color, lw)
         ds === nothing && return
-        write_runs(ctx, joinstyles(ds, common...), split_polyline(px, r))
+        tol = ctx.opts.simplify
+        write_runs(ctx, joinstyles(ds, common...), [simplify_polyline(run, tol) for run in split_polyline(px, r)])
     end
     return
 end

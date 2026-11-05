@@ -222,3 +222,35 @@ function clip_polygon(points::AbstractVector, r)
 end
 
 clamp_point(p, r) = Point2d(clamp(p[1], r[1], r[3]), clamp(p[2], r[2], r[4]))
+
+"""
+    simplify_polyline(points, tol) -> Vector{Point2d}
+
+Ramer–Douglas–Peucker simplification: drop points closer than `tol` to the
+line through their retained neighbours. Endpoints are always kept.
+"""
+function simplify_polyline(points::AbstractVector, tol::Real)
+    n = length(points)
+    (tol <= 0 || n <= 2) && return collect(Point2d, points)
+    keep = falses(n)
+    keep[1] = keep[n] = true
+    stack = [(1, n)]
+    while !isempty(stack)
+        i, j = pop!(stack)
+        j - i < 2 && continue
+        a, b = points[i], points[j]
+        dx, dy = b[1] - a[1], b[2] - a[2]
+        len = hypot(dx, dy)
+        dmax, kmax = -1.0, 0
+        for k in (i + 1):(j - 1)
+            p = points[k]
+            d = len > 0 ? abs(dy * (p[1] - a[1]) - dx * (p[2] - a[2])) / len : hypot(p[1] - a[1], p[2] - a[2])
+            d > dmax && ((dmax, kmax) = (d, k))
+        end
+        if dmax > tol
+            keep[kmax] = true
+            push!(stack, (i, kmax), (kmax, j))
+        end
+    end
+    return Point2d[points[k] for k in 1:n if keep[k]]
+end

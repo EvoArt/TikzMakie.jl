@@ -94,6 +94,18 @@ function fig_errorbars()
     fig
 end
 
+
+function fig_rasterized()
+    fig = Figure(size = (650, 300))
+    ax = Axis3(fig[1, 1]; title = "rasterize = true (surface)")
+    xs = range(-1, 1, length = 40)
+    surface!(ax, xs, xs, [x^2 - y^2 for x in xs, y in xs]; rasterize = true)
+    ax2 = Axis(fig[1, 2]; title = "20k points, rasterized", xlabel = L"x", ylabel = L"y")
+    pts = randn(Point2f, 20_000)
+    scatter!(ax2, pts; markersize = 3, color = (:black, 0.2), rasterize = 3)
+    lines!(ax2, -3:3, -3:3; color = :red)
+    fig
+end
 const FIGURES = Pair{String, Function}[
     "lines" => fig_lines,
     "scatter" => fig_scatter,
@@ -104,4 +116,5 @@ const FIGURES = Pair{String, Function}[
     "contour" => fig_contour,
     "layout" => fig_layout,
     "errorbars" => fig_errorbars,
+    "rasterized" => fig_rasterized,
 ]
