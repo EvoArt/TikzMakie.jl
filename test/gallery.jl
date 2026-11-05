@@ -1,7 +1,7 @@
 # Writes standalone .tex files (TikzMakie) and .png/.pdf files (CairoMakie)
 # for each figure in figures.jl, for side-by-side visual comparison.
 #
-#   julia --project=env TikzMakie/test/gallery.jl [outdir] [names...]
+#   julia --project=<env with CairoMakie + TikzMakie> test/gallery.jl [outdir] [names...]
 
 using CairoMakie, TikzMakie, Random
 include(joinpath(@__DIR__, "figures.jl"))

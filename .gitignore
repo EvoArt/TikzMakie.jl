@@ -6,3 +6,6 @@ Manifest*.toml
 *.synctex.gz
 /test/out/
 /examples/out/
+/docs/build/
+/docs/src/assets/gallery/
+/docs/src/gallery.md

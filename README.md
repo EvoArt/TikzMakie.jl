@@ -1,7 +1,10 @@
 # TikzMakie.jl
 
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://evoart.github.io/TikzMakie.jl/dev/)
+[![CI](https://github.com/EvoArt/TikzMakie.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/EvoArt/TikzMakie.jl/actions/workflows/CI.yml)
+
 Turn [Makie](https://docs.makie.org) figures into TikZ code for LaTeX
-documents, with **all text typeset by LaTeX**: tick labels, axis labels,
+documents, with all text typeset by LaTeX: tick labels, axis labels,
 legends and titles appear in your document's font, and `L"..."` strings become
 real LaTeX math.
 
@@ -28,15 +31,10 @@ LuaLaTeX/XeLaTeX. Plain OT1 Computer Modern substitutes the nearest
 size and warns.
 
 Nothing about your plotting code changes. TikzMakie reads the finished
-figure, so the output has the same layout as CairoMakie's PDF.
+figure, so the output has the same layout as CairoMakie's PDF. The
+[gallery](https://evoart.github.io/TikzMakie.jl/dev/gallery/) shows each
+example compiled with pdfLaTeX next to CairoMakie's rendering.
 
-## Why not SVG → svg2tikz?
-
-Makie lays out text itself. In an SVG from CairoMakie every glyph is an
-outlined path, so svg2tikz has no text to convert, and even when it works the
-text is in Makie's font rather than the document's. TikzMakie intercepts each
-text element *before* glyph layout and writes it as a `\node` holding the
-original string.
 
 ## Matching the document
 
@@ -139,5 +137,4 @@ This is also the way to get lit 3D surfaces; vector meshes are flat-shaded.
 TikzMakie walks the figure's scene tree the way CairoMakie does, but writes
 TikZ instead of making Cairo calls: it collects the primitive plots, sorts them
 by depth, clips each scene to its viewport, and projects positions through
-Makie's own camera matrices. See [PLAN.md](PLAN.md) for the design and
-[CLAUDE.md](CLAUDE.md) for development notes.
+Makie's own camera matrices. 
